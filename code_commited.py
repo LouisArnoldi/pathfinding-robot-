@@ -33,11 +33,11 @@ def stop():
     motor1.throttle = 0
     motor2.throttle = 0
 
-def forward(speed):
+def backward(speed):
     motor1.throttle = -speed
     motor2.throttle = -speed
 
-def backwards(speed):
+def forward(speed):
     motor1.throttle = speed
     motor2.throttle = speed
 
@@ -59,37 +59,47 @@ def rturn(speed):
 
 # set colors on LED
 setColor = 0
-pixels.fill((118,238,198))
+pixels.fill((66, 255, 0))
 
-def move_if_near():
-    pixels.fill((71,60,139))
+def move_testing_forward():
+    pixels.fill((255, 142, 0))
     print("call function")
-    backwards(0.2)
+    forward(0.5)
     time.sleep(2.5)
     stop()
-    pixels.fill((118,238,198))
+    pixels.fill((66, 255, 0))
+
+def move_testing_spin():
+    #pixels.fill((255, 142, 0))
+    print("call function")
+    lspin(0.5)
+    time.sleep(2.5)
+    stop()
+    rspin(0.5)
+    time.sleep(2.5)
+    stop()
+    pixels.fill((66, 255, 0))
+
+# you can call the function in the loop to log all distance values from the sensor
+def catch_distance_value():
+    try:
+        print((sonar.distance,))
+    except RuntimeError:
+        print("Retrying!")
+        pass
 
 print("load py script")
 
 # FOREVER LOOP
 while True:
-    if not btn1.value:  # if btn1.value triggert dauerhaft den button
-        move_if_near()
+    if not btn1.value:  # if button 1 pressed call a function
+        move_testing_forward()
+    if not btn2.value:  # if button 2 pressed call a function
+        move_testing_spin()
 
-    try:
-        print((sonar.distance,))
-    except RuntimeError:(
-        print("Retrying!"))
-        pass
+    if sonar.distance < 10:
+        backward(0.2)
+        time.sleep(0.5)
+        stop()
 
     time.sleep(0.1)
-
-#while True:
-    #move_if_near()
-    #try:
-    #    print((sonar.distance,))
-    #except RuntimeError:
-    #    print("Retrying!")
-    #    pass
-    #time.sleep(0.3)
-    #print("restart")

@@ -25,7 +25,7 @@ For the HCSR04 - You'll want to copy the necessary libraries from the bundle to 
 
 ## ISSUES
 
-[ ] change names of moving directions
-[ ] first tests of us sensor 
+[x] change names of moving directions
+[ ] first tests of us sensor ("if distance under 10 then stop driving)
 
 

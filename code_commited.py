@@ -75,6 +75,13 @@ print("load py script")
 while True:
     if not btn1.value:  # if btn1.value triggert dauerhaft den button
         move_if_near()
+
+    try:
+        print((sonar.distance,))
+    except RuntimeError:(
+        print("Retrying!"))
+        pass
+
     time.sleep(0.1)
 
 #while True:

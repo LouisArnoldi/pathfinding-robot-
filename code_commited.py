@@ -5,6 +5,7 @@ import pwmio
 from adafruit_motor import servo, motor
 import digitalio
 import neopixel
+import simpleio
 
 # Init ultrasonic sensor module
 sonar = adafruit_hcsr04.HCSR04(trigger_pin=board.GP3, echo_pin=board.GP2)
@@ -27,7 +28,10 @@ btn1.pull = digitalio.Pull.UP
 # Initialize Neopixel RGB LEDs
 RGB = neopixel.RGB
 num_pixels = 2
-pixels = neopixel.NeoPixel(board.GP18, num_pixels, brightness=0.02, auto_write=True, pixel_order=RGB)
+pixels = neopixel.NeoPixel(board.GP18, num_pixels, brightness=0.02, auto_write=False)
+
+# Define sound module
+PIEZO_PIN = board.GP22
 
 def stop():
     motor1.throttle = 0
@@ -57,28 +61,64 @@ def rturn(speed):
     motor1.throttle = -speed
     motor2.throttle = 0
 
-# set colors on LED
-setColor = 0
-pixels.fill((66, 255, 0))
+def pathfinding():
+    print("pathfinding session started")
+    position = 0
+    while True:
+        obstacle = sonar.distance < 20
+        print((sonar.distance, ))
 
-def move_testing_forward():
-    pixels.fill((255, 142, 0))
-    print("call function")
-    forward(0.5)
-    time.sleep(2.5)
-    stop()
-    pixels.fill((66, 255, 0))
+        try:
+            print("run pathfinding")
+            if obstacle and position == 2:
+                print("no way to driving")
+                error_mode()
+                break
+            if obstacle and position == 1:
+                print("distance < 20, turn right")
+                position += 1
+                rspin(0.5)
+                time.sleep(0.6)
+                stop()
+                pass
+            if obstacle and position == 0:
+                print("distance < 20, turn left")
+                position += 1
+                lspin(0.5)
+                time.sleep(0.3)
+                stop()
+                pass
+            if not obstacle:
+                print("drive forward no obstacle detected")
+                position = 0
+                forward(0.5)  # drive forward with half power
+                time.sleep(0.3)  # drive length
+                stop()
+        except:
+            stop()
+            error_mode()
+            break
 
-def move_testing_spin():
-    #pixels.fill((255, 142, 0))
-    print("call function")
-    lspin(0.5)
-    time.sleep(2.5)
-    stop()
-    rspin(0.5)
-    time.sleep(2.5)
-    stop()
-    pixels.fill((66, 255, 0))
+def error_mode():
+    print("error mode")
+
+    simpleio.tone(PIEZO_PIN, 659, duration=0.15)
+
+    pixels.fill((255, 255, 0))
+    pixels.show()
+    time.sleep(0.2)  # Wait for 1 second
+
+    simpleio.tone(PIEZO_PIN, 262, duration=0.1)
+
+    # Fill pixels with red color
+    pixels.fill((255, 0, 0))
+    pixels.show()
+    time.sleep(0.2)  # Wait for 1 second
+
+def test_mode():
+    global interrupt_requested
+    interrupt_requested = True
+    error_mode()
 
 # you can call the function in the loop to log all distance values from the sensor
 def catch_distance_value():
@@ -88,18 +128,20 @@ def catch_distance_value():
         print("Retrying!")
         pass
 
-print("load py script")
+print("device is ready")
 
 # FOREVER LOOP
 while True:
-    if not btn1.value:  # if button 1 pressed call a function
-        move_testing_forward()
-    if not btn2.value:  # if button 2 pressed call a function
-        move_testing_spin()
+    # set colors on LED
+    setColor = 0  # is this variable unnecessary?
+    pixels.fill((66, 255, 0))
+    pixels.show()
 
-    if sonar.distance < 10:
-        backward(0.2)
-        time.sleep(0.5)
-        stop()
+    # Button 1: pathfinding mode
+    if not btn1.value:
+        pathfinding()
+    # Button 2: test mode
+    if not btn2.value:
+        test_mode()
 
     time.sleep(0.1)

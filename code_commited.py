@@ -7,6 +7,9 @@ import digitalio
 import neopixel
 import simpleio
 
+# interrupt running function
+interrupt_requested = False
+
 # Init ultrasonic sensor module
 sonar = adafruit_hcsr04.HCSR04(trigger_pin=board.GP3, echo_pin=board.GP2)
 
@@ -24,6 +27,7 @@ btn2 = digitalio.DigitalInOut(board.GP21)
 btn1.direction = digitalio.Direction.INPUT
 btn2.direction = digitalio.Direction.INPUT
 btn1.pull = digitalio.Pull.UP
+btn2.pull = digitalio.Pull.UP
 
 # Initialize Neopixel RGB LEDs
 RGB = neopixel.RGB
@@ -62,42 +66,88 @@ def rturn(speed):
     motor2.throttle = 0
 
 def pathfinding():
+    global interrupt_requested
     print("pathfinding session started")
     position = 0
-    while True:
-        obstacle = sonar.distance < 20
+
+    while not interrupt_requested:
+        obstacle = sonar.distance < 13
         print((sonar.distance, ))
+
+        #if interrupt_requested:
+        #    error_mode()
+        #    break
 
         try:
             print("run pathfinding")
-            if obstacle and position == 2:
-                print("no way to driving")
-                error_mode()
-                break
-            if obstacle and position == 1:
-                print("distance < 20, turn right")
-                position += 1
-                rspin(0.5)
-                time.sleep(0.6)
-                stop()
-                pass
             if obstacle and position == 0:
-                print("distance < 20, turn left")
-                position += 1
-                lspin(0.5)
-                time.sleep(0.3)
+                # backwards and update position
+                backward(0.5)
+                time.sleep(0.4)
                 stop()
-                pass
+                print("distance < 20, turn left")
+                # change the angle left
+                lspin(0.5)
+                time.sleep(0.4)
+                stop()
+                sensor_data_left = sonar.distance
+                print("distance < 20, turn right")
+                # change the angle right
+                rspin(0.5)
+                time.sleep(0.8)
+                stop()
+                sensor_data_right = sonar.distance
+                if sensor_data_right < 13 or sensor_data_left < 13:
+                    print("can't driving yet")
+                    error_mode()
+                    break
+                elif sensor_data_left > sensor_data_right:
+                    lspin(0.5)
+                    time.sleep(0.8)
+                    stop()
+                    position = 0
+                    forward(0.5)  # drive forward with half power
+                    time.sleep(0.3)  # drive length
+                    stop()
+                elif sensor_data_right > sensor_data_left:
+                    position = 0
+                    forward(0.5)  # drive forward with half power
+                    time.sleep(0.3)  # drive length
+                    stop()
             if not obstacle:
                 print("drive forward no obstacle detected")
                 position = 0
                 forward(0.5)  # drive forward with half power
                 time.sleep(0.3)  # drive length
                 stop()
+                lturn(0.5)
+                time.sleep(0.2)
+                stop()
+                time.sleep(0.2)
+                sensor_data_left = sonar.distance
+                rturn(0.5)
+                time.sleep(0.4)
+                stop()
+                time.sleep(0.2)
+                sensor_data_right = sonar.distance
+                if sensor_data_left > sensor_data_right:
+                    lspin(0.5)
+                    time.sleep(0.4)
+                    stop()
+                    position = 0
+                    forward(0.5)  # drive forward with half power
+                    time.sleep(0.3)  # drive length
+                    stop()
+                if sensor_data_right > sensor_data_left:
+                    position = 0
+                    forward(0.5)  # drive forward with half power
+                    time.sleep(0.3)  # drive length
+                    stop()
         except:
             stop()
             error_mode()
             break
+        #time.sleep(0.1)
 
 def error_mode():
     print("error mode")
@@ -117,8 +167,10 @@ def error_mode():
 
 def test_mode():
     global interrupt_requested
-    interrupt_requested = True
-    error_mode()
+    print("btn 2 pressed")
+    if not interrupt_requested:
+        interrupt_requested = True
+        print(interrupt_requested)
 
 # you can call the function in the loop to log all distance values from the sensor
 def catch_distance_value():

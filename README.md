@@ -1,11 +1,22 @@
-# robotOS
+# pathfinding robot vehicle using CircuitPython
 
-## BEFORE STARTING
+A self-made two-wheeled robot car, that autonomously completes a test course with pathfinding.
 
-The robot need batterys or LiPo to work all servos and sensors. The USB connection can't be used 
-for energy transmittion and is only for data connection.
+![Hey robot :)](img%2FD171A1F1-F882-466D-B948-9D386C752012.GIF)
 
-## LOADING ALL FILES & SERVICES
+## Project set up
+
+* Chassis/wheels/servos: MBot 
+* Mainboard: Maker Pi RP2040 with Raspberry Pi Pico
+* Sensor: ultrasonic sensor HC-SR04
+* Based on CircuitPython
+
+## Batteries
+
+The robot need batteries or LiPo to work all servos and sensors. The USB connection can't be used 
+for energy transmission and is only for data connection.
+
+## Prepare the robot 
 
 ### load CIRCUITPY
 it is not necessary to load files manually. if there are not loaded from root file path, refresh with 
@@ -23,9 +34,8 @@ For the HCSR04 - You'll want to copy the necessary libraries from the bundle to 
     adafruit_hcsr04.mpy
     adafruit_bus_device
 
-## ISSUES
-
-[x] change names of moving directions
-[ ] first tests of us sensor ("if distance under 10 then stop driving)
-
+## run pathfinding 
+* press the switch to start
+* start the pathfinding mode with button GP20/BTN1
+* GP21/BTN2 calls the test mode (not in use)
 

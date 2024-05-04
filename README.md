@@ -1,10 +1,10 @@
-# pathfinding robot vehicle using CircuitPython
+# pathfinding robot car using CircuitPython
 
 A self-made two-wheeled robot car, that autonomously completes a test course with pathfinding.
 
 ![Hey robot :)](img%2FD171A1F1-F882-466D-B948-9D386C752012.GIF)
 
-## Project set up
+## Project setup
 
 * Chassis/wheels/servos: MBot 
 * Mainboard: Maker Pi RP2040 with Raspberry Pi Pico

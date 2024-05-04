@@ -7,16 +7,8 @@ import digitalio
 import neopixel
 import simpleio
 
-# Init ultrasonic sensor module
+# Initialize ultrasonic sensor module
 sonar = adafruit_hcsr04.HCSR04(trigger_pin=board.GP3, echo_pin=board.GP2)
-
-# Initialize DC motors
-m1a = pwmio.PWMOut(board.GP8, frequency=50)
-m1b = pwmio.PWMOut(board.GP9, frequency=50)
-motor1 = motor.DCMotor(m1a, m1b)
-m2a = pwmio.PWMOut(board.GP10, frequency=50)
-m2b = pwmio.PWMOut(board.GP11, frequency=50)
-motor2 = motor.DCMotor(m2a, m2b)
 
 # Initialize buttons
 btn1 = digitalio.DigitalInOut(board.GP20)
@@ -34,37 +26,46 @@ pixels = neopixel.NeoPixel(board.GP18, num_pixels, brightness=0.02, auto_write=F
 # Define sound module
 PIEZO_PIN = board.GP22
 
-def stop():
-    motor1.throttle = 0
-    motor2.throttle = 0
 
-def backward(speed):
-    motor1.throttle = -speed
-    motor2.throttle = -speed
+class MotorController:
+    def __init__(self, m1a_pin, m1b_pin, m2a_pin, m2b_pin, frequency=50):
+        self.motor1 = motor.DCMotor(pwmio.PWMOut(m1a_pin, frequency=frequency), pwmio.PWMOut(m1b_pin, frequency=frequency))
+        self.motor2 = motor.DCMotor(pwmio.PWMOut(m2a_pin, frequency=frequency), pwmio.PWMOut(m2b_pin, frequency=frequency))
 
-def forward(speed):
-    motor1.throttle = speed
-    motor2.throttle = speed
+    def stop(self):
+        self.motor1.throttle = 0
+        self.motor2.throttle = 0
 
-def lspin(speed):
-    motor1.throttle = speed
-    motor2.throttle = -speed
+    def backward(self, speed):
+        self.motor1.throttle = -speed
+        self.motor2.throttle = -speed
 
-def rspin(speed):
-    motor1.throttle = -speed
-    motor2.throttle = speed
+    def forward(self, speed):
+        self.motor1.throttle = speed
+        self.motor2.throttle = speed
 
-def lturn(speed):
-    motor1.throttle = 0
-    motor2.throttle = -speed
+    def lspin(self, speed):
+        self.motor1.throttle = speed
+        self.motor2.throttle = -speed
 
-def rturn(speed):
-    motor1.throttle = -speed
-    motor2.throttle = 0
+    def rspin(self, speed):
+        self.motor1.throttle = -speed
+        self.motor2.throttle = speed
+
+    def lturn(self, speed):
+        self.motor1.throttle = 0
+        self.motor2.throttle = -speed
+
+    def rturn(self, speed):
+        self.motor1.throttle = -speed
+        self.motor2.throttle = 0
+
+
+move = MotorController(board.GP8, board.GP9, board.GP10, board.GP11)
+
 
 def pathfinding():
     print("pathfinding session started")
-    position = 0
 
     while True:
         obstacle = sonar.distance < 13
@@ -72,22 +73,22 @@ def pathfinding():
 
         try:
             print("run pathfinding")
-            if obstacle and position == 0:
+            if obstacle:
                 # backwards and update position
-                backward(0.5)
+                move.backward(0.5)
                 time.sleep(0.4)
-                stop()
+                move.stop()
                 print("distance < 20, turn left")
                 # change the angle left
-                lspin(0.5)
+                move.lspin(0.5)
                 time.sleep(0.4)
-                stop()
+                move.stop()
                 sensor_data_left = sonar.distance
                 print("distance < 20, turn right")
                 # change the angle right
-                rspin(0.5)
+                move.rspin(0.5)
                 time.sleep(0.8)
-                stop()
+                move.stop()
                 sensor_data_right = sonar.distance
                 if sensor_data_right < 13 or sensor_data_left < 13:
                     print("can't driving yet")
@@ -95,54 +96,50 @@ def pathfinding():
                     break
                 elif sensor_data_left > sensor_data_right:
                     simpleio.tone(PIEZO_PIN, 262, duration=0.1)
-                    lspin(0.5)
+                    move.lspin(0.5)
                     time.sleep(0.8)
-                    stop()
-                    position = 0
-                    forward(0.5)  # drive forward with half power
+                    move.stop()
+                    move.forward(0.5)  # drive forward with half power
                     time.sleep(0.3)  # drive length
-                    stop()
+                    move.stop()
                 elif sensor_data_right > sensor_data_left:
                     simpleio.tone(PIEZO_PIN, 659, duration=0.1)
-                    position = 0
-                    forward(0.5)  # drive forward with half power
+                    move.forward(0.5)  # drive forward with half power
                     time.sleep(0.3)  # drive length
-                    stop()
+                    move.stop()
             if not obstacle:
                 print("drive forward no obstacle detected")
-                position = 0
-                forward(0.5)  # drive forward with half power
+                move.forward(0.5)  # drive forward with half power
                 time.sleep(0.3)  # drive length
-                stop()
-                lspin(0.5)
+                move.stop()
+                move.lspin(0.5)
                 time.sleep(0.1)
-                stop()
+                move.stop()
                 time.sleep(0.2)
                 sensor_data_left = sonar.distance
-                rspin(0.5)
+                move.rspin(0.5)
                 time.sleep(0.2)
-                stop()
+                move.stop()
                 time.sleep(0.2)
                 sensor_data_right = sonar.distance
                 if sensor_data_left > sensor_data_right:
                     simpleio.tone(PIEZO_PIN, 262, duration=0.1)
-                    lspin(0.5)
+                    move.lspin(0.5)
                     time.sleep(0.4)
-                    stop()
-                    position = 0
-                    forward(0.5)  # drive forward with half power
+                    move.stop()
+                    move.forward(0.5)  # drive forward with half power
                     time.sleep(0.3)  # drive length
-                    stop()
+                    move.stop()
                 if sensor_data_right > sensor_data_left:
                     simpleio.tone(PIEZO_PIN, 659, duration=0.1)
-                    position = 0
-                    forward(0.5)  # drive forward with half power
+                    move.forward(0.5)  # drive forward with half power
                     time.sleep(0.3)  # drive length
-                    stop()
+                    move.stop()
         except:
-            stop()
+            move.stop()
             error_mode()
             break
+
 
 def error_mode():
     print("error mode")
@@ -160,8 +157,9 @@ def error_mode():
     pixels.show()
     time.sleep(0.2)  # Wait for 1 second
 
+
 def test_mode():
-    # you can call the function to log all distance values from the sensor
+    # hold the button to log all distance values from the sensor
     try:
         print((sonar.distance,))
     except RuntimeError:
@@ -169,6 +167,7 @@ def test_mode():
         pass
 
 print("device is ready")
+
 
 # FOREVER LOOP
 while True:

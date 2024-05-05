@@ -23,7 +23,7 @@ RGB = neopixel.RGB
 num_pixels = 2
 pixels = neopixel.NeoPixel(board.GP18, num_pixels, brightness=0.02, auto_write=False)
 
-# Define sound module
+# Initialize sound module
 PIEZO_PIN = board.GP22
 
 
@@ -61,81 +61,70 @@ class MotorController:
         self.motor2.throttle = 0
 
 
+# connect motor controller to PINS
 move = MotorController(board.GP8, board.GP9, board.GP10, board.GP11)
 
 
+# frequently used robot functions
+
+def play_tone(frequency, duration):
+    tone = simpleio.tone(PIEZO_PIN, frequency, duration=duration)
+    return tone
+
+
+def move_and_stop(direction, duration):
+    direction(0.5)
+    time.sleep(duration)
+    move.stop()
+
+
+# functions that are called up by pressing a button or by an error
+
 def pathfinding():
     print("pathfinding session started")
-
     while True:
         obstacle = sonar.distance < 13
-        print((sonar.distance, ))
-
         try:
             print("run pathfinding")
             if obstacle:
                 # backwards and update position
-                move.backward(0.5)
-                time.sleep(0.4)
-                move.stop()
+                move_and_stop(move.backward, 0.4)
                 print("distance < 20, turn left")
                 # change the angle left
-                move.lspin(0.5)
-                time.sleep(0.4)
-                move.stop()
+                move_and_stop(move.lspin, 0.4)
                 sensor_data_left = sonar.distance
                 print("distance < 20, turn right")
                 # change the angle right
-                move.rspin(0.5)
-                time.sleep(0.8)
-                move.stop()
+                move_and_stop(move.rspin, 0.8)
                 sensor_data_right = sonar.distance
                 if sensor_data_right < 13 or sensor_data_left < 13:
                     print("can't driving yet")
                     error_mode()
                     break
                 elif sensor_data_left > sensor_data_right:
-                    simpleio.tone(PIEZO_PIN, 262, duration=0.1)
-                    move.lspin(0.5)
-                    time.sleep(0.8)
-                    move.stop()
-                    move.forward(0.5)  # drive forward with half power
-                    time.sleep(0.3)  # drive length
-                    move.stop()
+                    play_tone(262, 0.1)
+                    move_and_stop(move.lspin, 0.8)
+                    move_and_stop(move.forward, 0.3)
                 elif sensor_data_right > sensor_data_left:
-                    simpleio.tone(PIEZO_PIN, 659, duration=0.1)
-                    move.forward(0.5)  # drive forward with half power
-                    time.sleep(0.3)  # drive length
-                    move.stop()
+                    play_tone(659, 0.1)
+                    move_and_stop(move.forward, 0.3)
             if not obstacle:
                 print("drive forward no obstacle detected")
-                move.forward(0.5)  # drive forward with half power
-                time.sleep(0.3)  # drive length
-                move.stop()
-                move.lspin(0.5)
-                time.sleep(0.1)
-                move.stop()
+                move_and_stop(move.forward, 0.3)
+                move_and_stop(move.lspin, 0.1)
                 time.sleep(0.2)
                 sensor_data_left = sonar.distance
-                move.rspin(0.5)
-                time.sleep(0.2)
-                move.stop()
+                move_and_stop(move.rspin, 0.2)
                 time.sleep(0.2)
                 sensor_data_right = sonar.distance
                 if sensor_data_left > sensor_data_right:
-                    simpleio.tone(PIEZO_PIN, 262, duration=0.1)
-                    move.lspin(0.5)
-                    time.sleep(0.4)
-                    move.stop()
-                    move.forward(0.5)  # drive forward with half power
-                    time.sleep(0.3)  # drive length
-                    move.stop()
+                    play_tone(262, 0.1)
+                    move_and_stop(move.lspin, 0.4)
+                    move_and_stop(move.forward, 0.3)
                 if sensor_data_right > sensor_data_left:
-                    simpleio.tone(PIEZO_PIN, 659, duration=0.1)
-                    move.forward(0.5)  # drive forward with half power
-                    time.sleep(0.3)  # drive length
-                    move.stop()
-        except:
+                    play_tone(659, 0.1)
+                    move_and_stop(move.forward, 0.3)
+        except RuntimeError:
             move.stop()
             error_mode()
             break
@@ -143,16 +132,11 @@ def pathfinding():
 
 def error_mode():
     print("error mode")
-
-    simpleio.tone(PIEZO_PIN, 659, duration=0.15)
-
+    play_tone(659, 0.1)
     pixels.fill((255, 255, 0))
     pixels.show()
     time.sleep(0.2)  # Wait for 1 second
-
-    simpleio.tone(PIEZO_PIN, 262, duration=0.1)
-
-    # Fill pixels with red color
+    play_tone(262, 0.1)
     pixels.fill((255, 0, 0))
     pixels.show()
     time.sleep(0.2)  # Wait for 1 second
@@ -166,21 +150,19 @@ def test_mode():
         print("Retrying!")
         pass
 
+
 print("device is ready")
 
 
 # FOREVER LOOP
 while True:
     # set colors on LED
-    setColor = 0  # is this variable unnecessary?
     pixels.fill((66, 255, 0))
     pixels.show()
-
     # Button 1: pathfinding mode
     if not btn1.value:
         pathfinding()
     # Button 2: test mode
     if not btn2.value:
         test_mode()
-
-    time.sleep(0.1)
+    time.sleep(0.1)  # is needed to refresh buttons
